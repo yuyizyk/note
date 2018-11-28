@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: eureka-server-peel2
+server:
+  port: 1003
+eureka:
+  instance:
+    hostname: peer2
+  client:
+    service-url:
+      defaultZone:
+      - http://peer1:1002/eureka/
+      - http://peer2:1003/eureka/

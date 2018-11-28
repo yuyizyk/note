@@ -1,0 +1,22 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:1001/eureka/
+server:
+  port: 2001
+spring:
+  application:
+    name: service-c2-producer
+  cloud:
+    config:
+      name: springcloud-config
+      profile: dev
+      uri: http://localhost:8888/
+      label: dev
+      discovery:
+        service-id: sc-config-server
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info,bus-refresh

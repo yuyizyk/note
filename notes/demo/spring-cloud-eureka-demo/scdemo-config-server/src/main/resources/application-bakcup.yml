@@ -1,0 +1,18 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:1001/eureka/
+server:
+  port: 8887
+spring:
+  application:
+    name: sc-config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/yuyizyk/note
+          search-paths: notes/springcloud-config-repo
+          username: null
+          password: null
+      label: dev

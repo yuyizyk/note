@@ -1,0 +1,25 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:1001/eureka/
+server:
+  port: 2000
+spring:
+  application:
+    name: service-c1-producer
+  cloud:
+    config:
+      name: springcloud-config
+      profile: dev
+      uri: http://localhost:8888/
+      label: dev
+      discovery:
+        service-id: sc-config-server
+feign:
+  hystrix:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info,bus-refresh
