@@ -1,0 +1,28 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:1001/eureka/
+server:
+  port: 8080
+spring:
+  application:
+    name: sc-gateway
+  cloud:
+    gateway:
+      filter:
+        remove-hop-by-hop:
+          headers:
+          - dummy
+      routes:
+      - id: a
+        uri: lb://service-c1-producer
+        predicates:
+        - Path=/a/**
+        filters:
+        - StripPrefix=1
+      - id: b
+        uri: lb://service-c2-producer
+        predicates:
+        - Path=/b/**
+        filters:
+        - StripPrefix=1
