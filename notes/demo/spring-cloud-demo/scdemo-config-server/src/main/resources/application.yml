@@ -19,8 +19,8 @@ spring:
   rabbitmq:
     host: 127.0.0.1
     port: 5672
-    username: test
-    password: test123
+    username: guest
+    password: shanshanjie
 management:
   endpoints:
     web:

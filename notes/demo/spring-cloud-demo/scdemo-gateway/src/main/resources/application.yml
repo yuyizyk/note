@@ -3,16 +3,15 @@ eureka:
     serviceUrl:
       defaultZone: http://localhost:1001/eureka/
 server:
-  port: 8080
+  port: 80
 spring:
   application:
     name: sc-gateway
   cloud:
     gateway:
-      filter:
-        remove-hop-by-hop:
-          headers:
-          - dummy
+      discovery:
+        locator:
+          enabled: true
       routes:
       - id: a
         uri: lb://service-c1-producer
