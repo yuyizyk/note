@@ -12,13 +12,14 @@ import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -149,7 +150,7 @@ public class SrcActionAnalysis {
 	 * @param requestMappingHandlerMapping
 	 * @param c
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ "unchecked" })
 	public static void registerMapping(RequestMappingHandlerMapping requestMappingHandlerMapping, Class<?> c) {
 		LocalVariableTableParameterNameDiscoverer u = new LocalVariableTableParameterNameDiscoverer();
 		ClassPool pool = ClassPool.getDefault();
@@ -175,21 +176,12 @@ public class SrcActionAnalysis {
 										(Class<? extends BaseAction>) c, m);
 								Handler obj;
 								Method newMethod;
-								// if (Objs.isEmpty(m.getParameterTypes())) {
-								// obj = handle;
-								// newMethod = HandlerAction.class.getMethod("run", ServletRequest.class,
-								// ServletResponse.class);
-								// } else {
 
 								CtClass handleCtClz = pool
 										.makeClass(
 												Handler.class.getName() + "$" + c.getSimpleName() + "$" + m.getName()
 														+ "R" + (new Random().nextInt(1024)),
 												pool.get(Handler.class.getName()));
-								// CtClass srcCtClz = pool.get(c.getName());
-								// CtMethod srcCtMethod = srcCtClz.getDeclaredMethod(m.getName(),
-								// pool.get(Stream
-								// .of(m.getParameterTypes()).map(c2 -> c2.getName()).toArray(String[]::new)));
 								// 设置方法名 修饰符 返回类型
 								StringBuilder sb = new StringBuilder();
 								sb.append(Modifier.toString(m.getModifiers())).append(" ")
@@ -204,8 +196,8 @@ public class SrcActionAnalysis {
 											.append(u.getParameterNames(m)[i]);
 									pars.add(sb2.toString());
 								}
-								pars.add("javax.servlet.ServletRequest req");
-								pars.add("javax.servlet.ServletResponse resp");
+								pars.add("javax.servlet.http.HttpServletRequest req");
+								pars.add("javax.servlet.http.HttpServletResponse resp");
 
 								sb.append(StringUtils.join(pars, " , ")).append(")").append("\n throws Throwable ")
 										// .append(StringUtils.join(Stream.of(newMethod.getExceptionTypes()).map(Class::getName),","))
@@ -297,8 +289,8 @@ public class SrcActionAnalysis {
 										new Object[] { handleAction });
 								List<Class<?>> li = new ArrayList<>();
 								Stream.of(m.getParameterTypes()).forEach(li::add);
-								li.add(ServletRequest.class);
-								li.add(ServletResponse.class);
+								li.add(HttpServletRequest.class);
+								li.add(HttpServletResponse.class);
 
 								newMethod = clazz.getMethod(m.getName(), li.toArray(new Class<?>[] {}));
 								// }
@@ -374,10 +366,8 @@ public class SrcActionAnalysis {
 	/**
 	 * 获得对应的MemberValue 实例
 	 * 
-	 * @param clz
-	 *            对象类型
-	 * @param resul
-	 *            对象值
+	 * @param clz   对象类型
+	 * @param resul 对象值
 	 * @param cp
 	 * @return
 	 * @throws NotFoundException
@@ -455,10 +445,8 @@ public class SrcActionAnalysis {
 	/**
 	 * 将anno注解对象转化为javassist.bytecode.annotation.Annotation 注解
 	 * 
-	 * @param strClzName
-	 *            注解类名
-	 * @param an
-	 *            注解实例
+	 * @param strClzName 注解类名
+	 * @param an         注解实例
 	 * @param cp
 	 * @return
 	 * @throws IllegalAccessException
@@ -630,6 +618,7 @@ public class SrcActionAnalysis {
 		return minfoB;
 	}
 
+	@SuppressWarnings("static-access")
 	public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, SecurityException,
 			NotFoundException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		// System.out.println(System.getProperty("java.ext.dirs"));

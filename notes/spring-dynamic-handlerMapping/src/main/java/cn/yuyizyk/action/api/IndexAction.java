@@ -16,12 +16,12 @@ public class IndexAction extends BaseAction {
 		print("{\"pStr_2\":\"" + pStr_2 + "\",\"pStr\":\"" + pStr + "\"");
 	}
 
-	@GetMapping({ "", "/" })
+	@GetMapping({ "api/", "api" })
 	public void index(String pStr, String pStr_2) {
 		print("{\"pStr_2\":\"" + pStr_2 + "\",\"pStr\":\"" + pStr + "\"");
 	}
 
-	@RequestMapping("index3/{pStr}")
+	@RequestMapping("api/index3/{pStr}")
 	public void index3(@PathVariable("pStr") String pStr, String pStr_2) {
 		print("{\"pStr_2\":\"" + pStr_2 + "\",\"pStr\":\"" + pStr + "\"");
 	}
