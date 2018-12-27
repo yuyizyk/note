@@ -13,10 +13,4 @@ public class Handler {
 	protected Object invoke(HttpServletRequest request, HttpServletResponse response, Object[] args) throws Throwable {
 		return handlerAction.invoke(request, response, args);
 	}
-
-	//
-	// public void run(ServletRequest request, ServletResponse response) throws
-	// Throwable {
-	//
-	// }
 }

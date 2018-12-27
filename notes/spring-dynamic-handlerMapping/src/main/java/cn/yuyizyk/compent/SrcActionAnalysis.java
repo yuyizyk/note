@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -31,6 +32,7 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import cn.yuyizyk.action.BaseAction;
+import cn.yuyizyk.util.ClassLoaderUtil;
 import cn.yuyizyk.util.Objs;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -151,22 +153,28 @@ public class SrcActionAnalysis {
 	 * @param c
 	 */
 	@SuppressWarnings({ "unchecked" })
-	public static void registerMapping(RequestMappingHandlerMapping requestMappingHandlerMapping, Class<?> c) {
+	public static void registerMapping(RequestMappingHandlerMapping requestMappingHandlerMapping) {
+		Set<Class<?>> clzs = ClassLoaderUtil.getClzFromPkg(BaseAction.class.getPackage().getName());
+		log.info("即将初始化 handleraction size[{}]...", clzs.size());
 		LocalVariableTableParameterNameDiscoverer u = new LocalVariableTableParameterNameDiscoverer();
 		ClassPool pool = ClassPool.getDefault();
+		// 将classloader 定位到当前classloder中，避免出现loadpath不同导致classNotFound
 		AppClassLoader appClassLoader = new AppClassLoader(Thread.currentThread().getContextClassLoader());
-		try {
-			pool.appendClassPath(new LoaderClassPath(Thread.currentThread().getContextClassLoader()));
-			// pool.appendClassPath(SystemConstants.getClassPath().toString());
-			// pool.appendClassPath(new
-			// LoaderClassPath(ServletRequest.class.getClassLoader()));
+		ClassPool.getDefault().appendClassPath(new LoaderClassPath(Thread.currentThread().getContextClassLoader()));
+		// pool.appendClassPath(SystemConstants.getClassPath().toString());
+		// pool.appendClassPath(new
+		// LoaderClassPath(ServletRequest.class.getClassLoader()));
+		clzs.forEach(c -> {
+
 			if (BaseAction.class.isAssignableFrom(c) && (c.getModifiers() & Modifier.ABSTRACT) == 0) {
 				log.debug("registerMapping initialize {}...   ", c);
+				// 取包名 类 方法名做uri
 				String actionName;
 				StringBuilder pageName = new StringBuilder().append(StringUtils.replaceChars(
 						c.getPackage().getName().replaceAll(BaseAction.class.getPackage().getName(), ""), '.', '/'));
 				StringBuilder firstPath = new StringBuilder().append(pageName).append("/")
 						.append(actionName = getUriClass(c));
+				// 扫描方法
 				Stream.of(c.getMethods()).filter(m -> m.getDeclaringClass().equals(c))
 						.filter(m -> (m.getModifiers() & Modifier.STATIC) == 0).forEach(m -> {
 							try {
@@ -176,7 +184,6 @@ public class SrcActionAnalysis {
 										(Class<? extends BaseAction>) c, m);
 								Handler obj;
 								Method newMethod;
-
 								CtClass handleCtClz = pool
 										.makeClass(
 												Handler.class.getName() + "$" + c.getSimpleName() + "$" + m.getName()
@@ -184,8 +191,9 @@ public class SrcActionAnalysis {
 												pool.get(Handler.class.getName()));
 								// 设置方法名 修饰符 返回类型
 								StringBuilder sb = new StringBuilder();
-								sb.append(Modifier.toString(m.getModifiers())).append(" ")
-										.append(m.getReturnType().getName()).append(" ").append(m.getName())
+								sb.append(Modifier.toString(m.getModifiers()))// 修饰符
+										.append(" ").append(m.getReturnType().getName())// 放回类型
+										.append(" ").append(m.getName())// 方法名
 										.append("(");
 
 								// 设置参数
@@ -200,12 +208,11 @@ public class SrcActionAnalysis {
 								pars.add("javax.servlet.http.HttpServletResponse resp");
 
 								sb.append(StringUtils.join(pars, " , ")).append(")").append("\n throws Throwable ")
-										// .append(StringUtils.join(Stream.of(newMethod.getExceptionTypes()).map(Class::getName),","))
+										// .append(StringUtils.join(Stream.of(m.getExceptionTypes()).map(Class::getName),","))
 										.append("{\n");
 
 								if (!m.getReturnType().getName().equals("void")) {
 									sb.append("return  (").append(m.getReturnType().getName()).append(") ");
-
 								}
 								sb.append("invoke(req, resp, ");
 								if (m.getParameterCount() == 0)
@@ -214,13 +221,13 @@ public class SrcActionAnalysis {
 									sb.append("new Object[] {").append(StringUtils.join(u.getParameterNames(m), " , "))
 											.append("}");
 								sb.append(");\n }");
+								CtMethod newCtMethod = CtNewMethod.make(sb.toString(), handleCtClz);
 								ClassFile ccFile = handleCtClz.getClassFile();
 								ConstPool constpool = ccFile.getConstPool();
 
 								AnnotationsAttribute methodAttr = new AnnotationsAttribute(constpool,
 										AnnotationsAttribute.visibleTag);
 
-								CtMethod newCtMethod = CtNewMethod.make(sb.toString(), handleCtClz);
 								MethodInfo info = newCtMethod.getMethodInfo();
 								info.addAttribute(methodAttr);
 								// info.addAttribute(methodPar);
@@ -265,26 +272,16 @@ public class SrcActionAnalysis {
 
 								nAs[nAs.length - 2] = new javassist.bytecode.annotation.Annotation[0];
 								nAs[nAs.length - 1] = new javassist.bytecode.annotation.Annotation[0];
-								// nAs[nAs.length - 1][0] = getDefaultRequestParam("resp", constpool);
 								paa.setAnnotations(nAs);
-
 								info.addAttribute(paa);
-
 								handleCtClz.addMethod(newCtMethod);
-								// CtConstructor ctConstructor = new CtConstructor(new CtClass[] {
-								// pool.get(Class.class.getName()), pool.get(Method.class.getName()) },
-								// handleCtClz);
-								// handleCtClz.addConstructor(ctConstructor);
-
 								Class<?> clazz = appClassLoader.findClassByBytes(handleCtClz.getName(),
 										handleCtClz.toBytecode());
 								// TODO 取消写classfile
 								// handleCtClz.writeFile("");
 								// handleCtClz.writeFile(new
 								// ClassPathResource("").getFile().toPath().toString());
-
 								obj = new Handler(handleAction);
-
 								obj = (Handler) getObj(clazz, obj, new Class[] { HandlerAction.class },
 										new Object[] { handleAction });
 								List<Class<?>> li = new ArrayList<>();
@@ -299,13 +296,10 @@ public class SrcActionAnalysis {
 							} catch (Exception e) {
 								// TODO: handle exception
 								log.error("", e);
-								System.out.println(pool.getClassLoader());
 							}
 						});
 			}
-		} catch (Exception e) {
-			log.error("", e);
-		}
+		});
 	}
 
 	private static final javassist.bytecode.annotation.Annotation getDefaultRequestParam(String name,
@@ -619,8 +613,9 @@ public class SrcActionAnalysis {
 	}
 
 	@SuppressWarnings("static-access")
-	public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, SecurityException,
-			NotFoundException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	public static void main(String[] args)
+			throws ClassNotFoundException, NoSuchMethodException, SecurityException, NotFoundException,
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchFieldException {
 		// System.out.println(System.getProperty("java.ext.dirs"));
 		// Stream.of(System.getProperty("java.class.path").split(";")).forEach(System.out::println);
 		// System.out.println(ServletRequest.class.getResource(""));
@@ -628,8 +623,9 @@ public class SrcActionAnalysis {
 		// LoaderClassPath(ServletRequest.class.getClassLoader());
 		// System.out.println(ClassPool.getDefault().appendClassPath(SystemConstants.getClassPath().toString()));
 
-		System.out.println(new SrcActionAnalysis().getProxyMethodStr(SrcActionAnalysis.class,
-				SrcActionAnalysis.class.getMethod("getter", String.class)));
+		// System.out.println(new
+		// SrcActionAnalysis().getProxyMethodStr(SrcActionAnalysis.class,
+//				SrcActionAnalysis.class.getMethod("getter", String.class)));
 
 		// HandleAction ha = new HandleAction(BaseAction.class, null) {
 		//
