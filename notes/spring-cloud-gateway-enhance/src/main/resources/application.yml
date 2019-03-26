@@ -1,0 +1,35 @@
+server:
+  port: 80
+proxyBeanName:
+  dev: dev
+spring:
+  mvc: 
+    favicon:
+      enabled: false
+  banner:
+    location: file:config/banner.txt
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+      - id: proxy-dev
+        uri: proxy://${proxyBeanName.dev:dev}
+        predicates:
+        - Host=**.${proxyBeanName.dev:dev}.**
+    consul:
+      host: 172.22.4.1
+      port: 8500
+      discovery:
+        health-check-url: ${erc.domain}/health
+        prefer-ip-address: true
+        ip-address: ${inner-address}
+        port: ${inner-port}
+        tags:
+        - dev
+        instanceId: ${spring.application.name}-${spring.cloud.consul.discovery.ip-address:localhost}-${spring.cloud.consul.discovery.port:80}
+logging:
+  path: /temp/log
+  level:
+    org.springframework.context.support.PostProcessorRegistrationDelegate: error
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: error

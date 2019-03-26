@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -279,8 +280,7 @@ public class SrcActionAnalysis {
 										handleCtClz.toBytecode());
 								// TODO 取消写classfile
 								// handleCtClz.writeFile("");
-								// handleCtClz.writeFile(new
-								// ClassPathResource("").getFile().toPath().toString());
+								handleCtClz.writeFile(new ClassPathResource("").getFile().toPath().toString());
 								obj = new Handler(handleAction);
 								obj = (Handler) getObj(clazz, obj, new Class[] { HandlerAction.class },
 										new Object[] { handleAction });
