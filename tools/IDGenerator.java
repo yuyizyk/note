@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
  * 	32^3位毫秒级ID生成索引：001 
  * 	32^2位服务ID号：02
  * </pre>
- *
+ * @介绍 https://my.oschina.net/yuyizyk/blog/4267430
  * @author yuyi
  */
 @Slf4j
